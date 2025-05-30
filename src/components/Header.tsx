@@ -52,11 +52,11 @@ const Header = () => {
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 glass border-b border-white/10">
-      <div className="px-4 py-4">
+      <div className="px-4 py-3 sm:py-4">
         <div className="flex items-center justify-between">
           <div className="flex flex-col">
             <h1 
-              className="text-xl lg:text-2xl font-bold text-white cursor-pointer hover:text-blue-300 transition-colors"
+              className="text-lg sm:text-xl lg:text-2xl font-bold text-white cursor-pointer hover:text-teal-300 transition-all duration-200"
               onClick={() => navigate('/')}
             >
               Lon Demandas
@@ -67,18 +67,18 @@ const Header = () => {
           </div>
           
           {/* Desktop Navigation */}
-          <div className="hidden lg:flex items-center space-x-3">
+          <div className="hidden lg:flex items-center space-x-2">
             {navigationItems.map((item) => {
               const Icon = item.icon;
               return (
                 <button
                   key={item.path}
                   onClick={() => handleNavigation(item.path)}
-                  className={`glass-button px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center space-x-2 ${
-                    isActive(item.path) ? 'bg-blue-500/40 text-white' : 'text-blue-200 hover:text-white'
+                  className={`glass-button px-3 py-2 rounded-lg text-sm font-medium transition-all flex items-center space-x-2 ${
+                    isActive(item.path) ? 'bg-teal-500/40 text-white' : 'text-blue-200 hover:text-white'
                   }`}
                 >
-                  {Icon && <Icon size={16} />}
+                  {Icon && <Icon size={14} />}
                   <span>{item.label}</span>
                 </button>
               );
@@ -88,27 +88,27 @@ const Header = () => {
           {/* Mobile Menu Button */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="lg:hidden glass-button p-2 rounded-lg"
+            className="lg:hidden btn-teal"
           >
-            {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+            {mobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
           </button>
         </div>
 
         {/* Mobile Navigation */}
         {mobileMenuOpen && (
-          <div className="lg:hidden mt-4 glass rounded-lg p-4 animate-fade-in">
-            <div className="flex flex-col space-y-2">
+          <div className="lg:hidden mt-4 glass rounded-lg p-3 animate-fade-in">
+            <div className="flex flex-col space-y-1">
               {navigationItems.map((item) => {
                 const Icon = item.icon;
                 return (
                   <button
                     key={item.path}
                     onClick={() => handleNavigation(item.path)}
-                    className={`glass-button px-4 py-3 rounded-lg text-sm font-medium transition-all flex items-center space-x-2 ${
-                      isActive(item.path) ? 'bg-blue-500/40 text-white' : 'text-blue-200 hover:text-white'
+                    className={`glass-button px-3 py-2 rounded-lg text-sm font-medium transition-all flex items-center space-x-2 ${
+                      isActive(item.path) ? 'bg-teal-500/40 text-white' : 'text-blue-200 hover:text-white'
                     }`}
                   >
-                    {Icon && <Icon size={16} />}
+                    {Icon && <Icon size={14} />}
                     <span>{item.label}</span>
                   </button>
                 );

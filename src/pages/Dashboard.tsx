@@ -32,10 +32,7 @@ const Dashboard = () => {
   const activeEvents = getActiveEvents();
   const activeDemands = getActiveDemands();
   const completedDemands = getCompletedDemands();
-  const archivedEvents = 0; // Will implement later
-
-  // Ordenar eventos por data (mais recentes primeiro)
-  const sortedEvents = [...activeEvents].sort((a, b) => b.date.getTime() - a.date.getTime());
+  const archivedEvents = 0;
 
   const handleEventSubmit = (data: EventFormData) => {
     if (editingEvent) {
@@ -118,18 +115,18 @@ const Dashboard = () => {
       
       <div className="pt-24">
         <div className="px-4 mt-8">
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center justify-between mb-4 sm:mb-6">
             <div></div>
             <button
               onClick={() => setShowEventForm(true)}
-              className="glass-button px-4 py-2 rounded-lg flex items-center space-x-2 hover:bg-teal-500/40 transition-all duration-200"
+              className="glass-button px-3 py-2 sm:px-4 sm:py-2 rounded-lg flex items-center space-x-2 text-white text-sm sm:text-base"
             >
-              <Plus size={16} className="text-teal-300" />
-              <span className="text-white">Novo Evento</span>
+              <Plus size={14} className="sm:size-4 text-teal-300" />
+              <span>Novo Evento</span>
             </button>
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-3 sm:space-y-4">
             {activeEvents.map((event) => (
               <EventRow
                 key={event.id}
@@ -147,18 +144,18 @@ const Dashboard = () => {
             ))}
 
             {activeEvents.length === 0 && (
-              <div className="glass rounded-xl p-12 text-center">
+              <div className="glass rounded-xl p-8 sm:p-12 text-center">
                 <div className="max-w-md mx-auto">
-                  <div className="w-16 h-16 bg-teal-500/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                    <Plus size={32} className="text-teal-300" />
+                  <div className="w-12 h-12 sm:w-16 sm:h-16 bg-teal-500/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <Plus size={24} className="sm:size-8 text-teal-300" />
                   </div>
-                  <h3 className="text-xl font-bold text-white mb-2">Nenhum evento cadastrado</h3>
-                  <p className="text-blue-200/70 mb-6">
+                  <h3 className="text-lg sm:text-xl font-bold text-white mb-2">Nenhum evento cadastrado</h3>
+                  <p className="text-sm sm:text-base text-blue-200/70 mb-6">
                     Comece criando seu primeiro evento para organizar suas demandas
                   </p>
                   <button
                     onClick={() => setShowEventForm(true)}
-                    className="glass-button px-6 py-3 rounded-lg hover:bg-teal-500/40 transition-all duration-200"
+                    className="glass-button px-4 py-2 sm:px-6 sm:py-3 rounded-lg text-sm sm:text-base"
                   >
                     <span className="text-white font-medium">Criar Primeiro Evento</span>
                   </button>

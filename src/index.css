@@ -73,28 +73,61 @@
     @apply glass rounded-2xl p-6 animate-fade-in;
   }
 
-  /* Efeitos hover padronizados */
+  /* Efeitos hover padronizados - SISTEMA UNIFICADO */
   .hover-effect {
-    @apply hover:bg-teal-500/40 transition-all duration-200;
+    @apply hover:bg-teal-500/40 transition-all duration-200 transform hover:scale-105;
   }
 
   .hover-effect-red {
-    @apply hover:bg-red-500/30 transition-all duration-200;
+    @apply hover:bg-red-500/30 transition-all duration-200 transform hover:scale-105;
   }
 
   .hover-effect-green {
-    @apply hover:bg-green-500/30 transition-all duration-200;
+    @apply hover:bg-green-500/30 transition-all duration-200 transform hover:scale-105;
   }
 
   .hover-effect-blue {
-    @apply hover:bg-blue-500/30 transition-all duration-200;
+    @apply hover:bg-blue-500/30 transition-all duration-200 transform hover:scale-105;
   }
 
   .hover-effect-orange {
-    @apply hover:bg-orange-500/30 transition-all duration-200;
+    @apply hover:bg-orange-500/30 transition-all duration-200 transform hover:scale-105;
   }
 
-  /* Responsividade para elementos específicos */
+  .hover-effect-yellow {
+    @apply hover:bg-yellow-500/30 transition-all duration-200 transform hover:scale-105;
+  }
+
+  /* Botões interativos padrão */
+  .btn-standard {
+    @apply p-2 rounded-lg transition-all duration-200 transform hover:scale-105;
+  }
+
+  .btn-teal {
+    @apply btn-standard hover:bg-teal-500/40;
+  }
+
+  .btn-red {
+    @apply btn-standard hover:bg-red-500/30;
+  }
+
+  .btn-green {
+    @apply btn-standard hover:bg-green-500/30;
+  }
+
+  .btn-blue {
+    @apply btn-standard hover:bg-blue-500/30;
+  }
+
+  .btn-yellow {
+    @apply btn-standard hover:bg-yellow-500/30;
+  }
+
+  .btn-orange {
+    @apply btn-standard hover:bg-orange-500/30;
+  }
+
+  /* Responsividade otimizada */
   @media (max-width: 768px) {
     .glass {
       @apply p-3;
@@ -102,6 +135,20 @@
     
     .glass-popup {
       @apply m-2 max-w-[calc(100vw-1rem)];
+    }
+
+    .btn-standard {
+      @apply p-1.5;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .glass {
+      @apply p-2;
+    }
+    
+    .btn-standard {
+      @apply p-1;
     }
   }
 }
@@ -115,7 +162,7 @@
   display: none;
 }
 
-/* Animações suaves para transições */
+/* Animações suaves para transições - OTIMIZADAS */
 @keyframes slide-in {
   from {
     opacity: 0;
@@ -136,10 +183,41 @@
   }
 }
 
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 5px rgba(45, 212, 191, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(45, 212, 191, 0.8);
+  }
+}
+
 .animate-slide-in {
   animation: slide-in 0.3s ease-out;
 }
 
 .animate-fade-in {
   animation: fade-in 0.3s ease-out;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* Performance optimizations */
+.will-change-transform {
+  will-change: transform;
+}
+
+.will-change-scroll {
+  will-change: scroll-position;
+}
+
+/* Truncate text consistently */
+.truncate-title {
+  @apply truncate max-w-[200px] sm:max-w-[250px] lg:max-w-[300px];
+}
+
+.truncate-subtitle {
+  @apply truncate max-w-[150px] sm:max-w-[200px] lg:max-w-[250px];
 }
