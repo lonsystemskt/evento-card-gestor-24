@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Plus } from 'lucide-react';
 import Header from '@/components/Header';
@@ -32,38 +33,48 @@ const Dashboard = () => {
   const activeEvents = getActiveEvents();
   const activeDemands = getActiveDemands();
   const completedDemands = getCompletedDemands();
-  const archivedEvents = 0;
 
   const handleEventSubmit = async (data: EventFormData & { logoUrl?: string }) => {
-    if (editingEvent) {
-      await updateEvent(editingEvent.id, {
-        name: data.name,
-        date: data.date,
-        logo: data.logoUrl
-      });
-      setEditingEvent(null);
-    } else {
-      await addEvent({
-        name: data.name,
-        date: data.date,
-        logo: data.logoUrl,
-        isArchived: false,
-        isPriority: false
-      });
+    try {
+      if (editingEvent) {
+        await updateEvent(editingEvent.id, {
+          name: data.name,
+          date: data.date,
+          logo: data.logoUrl
+        });
+        setEditingEvent(null);
+      } else {
+        await addEvent({
+          name: data.name,
+          date: data.date,
+          logo: data.logoUrl,
+          isArchived: false,
+          isPriority: false
+        });
+      }
+      setShowEventForm(false);
+    } catch (error) {
+      console.error('Error submitting event:', error);
     }
   };
 
   const handleDemandSubmit = async (data: DemandFormData) => {
-    if (editingDemand) {
-      await updateDemand(editingDemand.id, data);
-      setEditingDemand(null);
-    } else {
-      await addDemand({
-        ...data,
-        eventId: selectedEventId,
-        isCompleted: false,
-        isArchived: false
-      });
+    try {
+      if (editingDemand) {
+        await updateDemand(editingDemand.id, data);
+        setEditingDemand(null);
+      } else {
+        await addDemand({
+          ...data,
+          eventId: selectedEventId,
+          isCompleted: false,
+          isArchived: false
+        });
+      }
+      setShowDemandForm(false);
+      setSelectedEventId('');
+    } catch (error) {
+      console.error('Error submitting demand:', error);
     }
   };
 
@@ -125,7 +136,7 @@ const Dashboard = () => {
         totalEvents={activeEvents.length}
         pendingDemands={activeDemands.length}
         completedDemands={completedDemands.length}
-        archivedEvents={archivedEvents}
+        archivedEvents={0}
       />
       
       <div className="pt-24">
@@ -147,22 +158,12 @@ const Dashboard = () => {
                 key={event.id}
                 event={event}
                 demands={getActiveDemands(event.id)}
-                onAddDemand={(eventId) => {
-                  setSelectedEventId(eventId);
-                  setShowDemandForm(true);
-                }}
-                onEditEvent={(event) => {
-                  setEditingEvent(event);
-                  setShowEventForm(true);
-                }}
+                onAddDemand={handleAddDemand}
+                onEditEvent={handleEditEvent}
                 onArchiveEvent={handleArchiveEvent}
                 onDeleteEvent={deleteEvent}
                 onTogglePriority={toggleEventPriority}
-                onEditDemand={(demand) => {
-                  setEditingDemand(demand);
-                  setSelectedEventId(demand.eventId);
-                  setShowDemandForm(true);
-                }}
+                onEditDemand={handleEditDemand}
                 onCompleteDemand={handleCompleteDemand}
                 onDeleteDemand={deleteDemand}
               />
@@ -193,10 +194,7 @@ const Dashboard = () => {
 
       <EventForm
         isOpen={showEventForm}
-        onClose={() => {
-          setShowEventForm(false);
-          setEditingEvent(null);
-        }}
+        onClose={closeEventForm}
         onSubmit={handleEventSubmit}
         initialData={editingEvent || undefined}
       />
@@ -205,11 +203,7 @@ const Dashboard = () => {
         <DemandForm
           eventId={selectedEventId}
           onSubmit={handleDemandSubmit}
-          onCancel={() => {
-            setShowDemandForm(false);
-            setEditingDemand(null);
-            setSelectedEventId('');
-          }}
+          onCancel={closeDemandForm}
           initialData={editingDemand ? {
             title: editingDemand.title,
             subject: editingDemand.subject,

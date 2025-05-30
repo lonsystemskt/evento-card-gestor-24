@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Event, Demand } from '@/types';
 import { useToast } from '@/hooks/use-toast';
@@ -9,24 +9,31 @@ export const useSupabaseEventManager = () => {
   const [demands, setDemands] = useState<Demand[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
+  const loadingRef = useRef(false);
+  const channelsRef = useRef<any[]>([]);
 
-  // Load initial data
-  useEffect(() => {
-    loadEvents();
-    loadDemands();
-    setupRealtimeSubscriptions();
-  }, []);
+  // Função de carregamento otimizada com debounce
+  const loadData = useCallback(async () => {
+    if (loadingRef.current) return;
+    loadingRef.current = true;
 
-  const loadEvents = async () => {
     try {
-      const { data, error } = await supabase
-        .from('events')
-        .select('*')
-        .order('created_at', { ascending: false });
+      // Carregar dados em paralelo
+      const [eventsResponse, demandsResponse] = await Promise.all([
+        supabase
+          .from('events')
+          .select('*')
+          .order('created_at', { ascending: false }),
+        supabase
+          .from('demands')
+          .select('*')
+          .order('created_at', { ascending: false })
+      ]);
 
-      if (error) throw error;
+      if (eventsResponse.error) throw eventsResponse.error;
+      if (demandsResponse.error) throw demandsResponse.error;
 
-      const transformedEvents: Event[] = data.map(event => ({
+      const transformedEvents: Event[] = eventsResponse.data.map(event => ({
         id: event.id,
         name: event.name,
         logo: event.logo || undefined,
@@ -37,27 +44,7 @@ export const useSupabaseEventManager = () => {
         createdAt: new Date(event.created_at)
       }));
 
-      setEvents(transformedEvents);
-    } catch (error) {
-      console.error('Error loading events:', error);
-      toast({
-        title: "Erro ao carregar eventos",
-        description: "Ocorreu um erro ao carregar os eventos do banco de dados.",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const loadDemands = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('demands')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-
-      const transformedDemands: Demand[] = data.map(demand => ({
+      const transformedDemands: Demand[] = demandsResponse.data.map(demand => ({
         id: demand.id,
         eventId: demand.event_id,
         title: demand.title,
@@ -68,57 +55,68 @@ export const useSupabaseEventManager = () => {
         createdAt: new Date(demand.created_at)
       }));
 
+      setEvents(transformedEvents);
       setDemands(transformedDemands);
     } catch (error) {
-      console.error('Error loading demands:', error);
+      console.error('Error loading data:', error);
       toast({
-        title: "Erro ao carregar demandas",
-        description: "Ocorreu um erro ao carregar as demandas do banco de dados.",
+        title: "Erro ao carregar dados",
+        description: "Ocorreu um erro ao carregar os dados.",
         variant: "destructive"
       });
     } finally {
       setIsLoading(false);
+      loadingRef.current = false;
     }
-  };
+  }, [toast]);
 
-  const setupRealtimeSubscriptions = () => {
-    // Events subscription
+  // Configurar real-time otimizado
+  useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
+    
+    // Carregar dados iniciais
+    loadData();
+
+    // Real-time com debounce
+    const debouncedReload = () => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        if (!loadingRef.current) {
+          loadData();
+        }
+      }, 500);
+    };
+
+    // Canal único para eventos
     const eventsChannel = supabase
       .channel('events-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'events'
-        },
-        () => {
-          loadEvents();
-        }
-      )
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'events'
+      }, debouncedReload)
       .subscribe();
 
-    // Demands subscription
+    // Canal único para demandas
     const demandsChannel = supabase
       .channel('demands-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'demands'
-        },
-        () => {
-          loadDemands();
-        }
-      )
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'demands'
+      }, debouncedReload)
       .subscribe();
 
+    channelsRef.current = [eventsChannel, demandsChannel];
+
     return () => {
-      supabase.removeChannel(eventsChannel);
-      supabase.removeChannel(demandsChannel);
+      clearTimeout(timeoutId);
+      channelsRef.current.forEach(channel => {
+        supabase.removeChannel(channel);
+      });
+      channelsRef.current = [];
     };
-  };
+  }, [loadData]);
 
   const uploadEventLogo = async (file: File): Promise<string | null> => {
     try {
@@ -150,22 +148,11 @@ export const useSupabaseEventManager = () => {
 
   const addEvent = async (eventData: Omit<Event, 'id' | 'createdAt'>) => {
     try {
-      let logoUrl: string | null = null;
-
-      // Handle logo upload if provided
-      if (eventData.logo && eventData.logo.startsWith('blob:')) {
-        // If it's a blob URL, we need to handle the file upload
-        // This case should not happen with our new implementation
-        logoUrl = eventData.logo;
-      } else {
-        logoUrl = eventData.logo || null;
-      }
-
       const { data, error } = await supabase
         .from('events')
         .insert({
           name: eventData.name,
-          logo: logoUrl,
+          logo: eventData.logo || null,
           date: eventData.date.toISOString().split('T')[0],
           is_archived: eventData.isArchived,
           is_priority: eventData.isPriority,
@@ -375,7 +362,7 @@ export const useSupabaseEventManager = () => {
     }
   };
 
-  const getActiveEvents = () => {
+  const getActiveEvents = useCallback(() => {
     const activeEvents = events.filter(event => !event.isArchived);
     
     const priorityEvents = activeEvents
@@ -387,11 +374,12 @@ export const useSupabaseEventManager = () => {
       .sort((a, b) => b.date.getTime() - a.date.getTime());
     
     return [...priorityEvents, ...normalEvents];
-  };
+  }, [events]);
 
-  const getArchivedEvents = () => events.filter(event => event.isArchived);
+  const getArchivedEvents = useCallback(() => 
+    events.filter(event => event.isArchived), [events]);
   
-  const getActiveDemands = (eventId?: string) => {
+  const getActiveDemands = useCallback((eventId?: string) => {
     const activeDemands = demands.filter(demand => 
       !demand.isCompleted && 
       !demand.isArchived && 
@@ -418,13 +406,13 @@ export const useSupabaseEventManager = () => {
       
       return a.date.getTime() - b.date.getTime();
     });
-  };
+  }, [demands]);
     
-  const getCompletedDemands = (eventId?: string) => 
+  const getCompletedDemands = useCallback((eventId?: string) => 
     demands.filter(demand => 
       demand.isCompleted && 
       (eventId ? demand.eventId === eventId : true)
-    );
+    ), [demands]);
 
   return {
     events,

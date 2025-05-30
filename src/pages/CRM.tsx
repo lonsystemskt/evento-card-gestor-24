@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Plus, Edit, Trash2 } from 'lucide-react';
 import Header from '@/components/Header';
 import CRMForm from '@/components/CRMForm';
-import { useCRMManager } from '@/hooks/useCRMManager';
+import { useSupabaseCRMManager } from '@/hooks/useSupabaseCRMManager';
 import { CRMContact } from '@/types';
 import {
   Dialog,
@@ -21,47 +21,60 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { useToast } from '@/hooks/use-toast';
 
 const CRM = () => {
-  const { contacts, addContact, updateContact, deleteContact } = useCRMManager();
+  const { contacts, isLoading, addContact, updateContact, deleteContact } = useSupabaseCRMManager();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingContact, setEditingContact] = useState<CRMContact | null>(null);
   const [deletingContactId, setDeletingContactId] = useState<string | null>(null);
-  const { toast } = useToast();
 
-  const handleAddContact = (contactData: any) => {
-    addContact(contactData);
-    setIsFormOpen(false);
-    toast({
-      title: "Contato adicionado",
-      description: "O contato foi adicionado com sucesso.",
-    });
+  const handleAddContact = async (contactData: any) => {
+    try {
+      await addContact(contactData);
+      setIsFormOpen(false);
+    } catch (error) {
+      console.error('Error adding contact:', error);
+    }
   };
 
   const handleEditContact = (contact: CRMContact) => {
     setEditingContact(contact);
   };
 
-  const handleUpdateContact = (contactData: any) => {
-    if (editingContact) {
-      updateContact(editingContact.id, contactData);
-      setEditingContact(null);
-      toast({
-        title: "Contato atualizado",
-        description: "O contato foi atualizado com sucesso.",
-      });
+  const handleUpdateContact = async (contactData: any) => {
+    try {
+      if (editingContact) {
+        await updateContact(editingContact.id, contactData);
+        setEditingContact(null);
+      }
+    } catch (error) {
+      console.error('Error updating contact:', error);
     }
   };
 
-  const handleDeleteContact = (contactId: string) => {
-    deleteContact(contactId);
-    setDeletingContactId(null);
-    toast({
-      title: "Contato excluído",
-      description: "O contato foi excluído com sucesso.",
-    });
+  const handleDeleteContact = async (contactId: string) => {
+    try {
+      await deleteContact(contactId);
+      setDeletingContactId(null);
+    } catch (error) {
+      console.error('Error deleting contact:', error);
+    }
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen w-full relative">
+        <Header />
+        <main className="pt-24 px-4 pb-8">
+          <div className="max-w-7xl mx-auto">
+            <div className="glass rounded-xl p-8 text-center">
+              <p className="text-white">Carregando...</p>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen w-full relative">
@@ -94,15 +107,13 @@ const CRM = () => {
               <div key={contact.id} className="glass rounded-xl p-4 animate-fade-in">
                 <div className="flex items-center justify-between">
                   <div className="flex-1 grid grid-cols-1 md:grid-cols-5 gap-4 items-center text-left">
-                    {/* Nome */}
                     <div className="min-w-0">
                       <div className="text-xs text-blue-300 uppercase tracking-wide mb-1">Nome</div>
-                      <span className="text-white font-medium text-sm block truncate">
+                      <span className="text-white font-medium text-sm block truncate text-left">
                         {contact.name}
                       </span>
                     </div>
 
-                    {/* E-mail */}
                     <div className="min-w-0">
                       <div className="text-xs text-blue-300 uppercase tracking-wide mb-1">E-mail</div>
                       <span className="text-blue-200 text-sm block truncate">
@@ -110,7 +121,6 @@ const CRM = () => {
                       </span>
                     </div>
 
-                    {/* Telefone */}
                     <div className="min-w-0">
                       <div className="text-xs text-blue-300 uppercase tracking-wide mb-1">Telefone</div>
                       <span className="text-blue-200/70 text-sm block truncate">
@@ -118,7 +128,6 @@ const CRM = () => {
                       </span>
                     </div>
 
-                    {/* Assunto */}
                     <div className="min-w-0">
                       <div className="text-xs text-blue-300 uppercase tracking-wide mb-1">Assunto</div>
                       <span className="text-blue-200/70 text-sm block truncate">
@@ -126,7 +135,6 @@ const CRM = () => {
                       </span>
                     </div>
 
-                    {/* Data de prioridade */}
                     <div className="min-w-0 text-left">
                       <div className="text-xs text-blue-300 uppercase tracking-wide mb-1">Data</div>
                       <span className="text-blue-300 text-sm">
@@ -135,7 +143,6 @@ const CRM = () => {
                     </div>
                   </div>
 
-                  {/* Ações */}
                   <div className="flex items-center space-x-2 ml-4 flex-shrink-0">
                     <button
                       onClick={() => handleEditContact(contact)}
@@ -165,7 +172,6 @@ const CRM = () => {
         </div>
       </main>
 
-      {/* Modal de criação */}
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
         <DialogContent className="glass-popup border-blue-400/40">
           <DialogHeader>
@@ -178,7 +184,6 @@ const CRM = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Modal de edição */}
       <Dialog open={!!editingContact} onOpenChange={() => setEditingContact(null)}>
         <DialogContent className="glass-popup border-blue-400/40">
           <DialogHeader>
@@ -200,7 +205,6 @@ const CRM = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Confirmação de exclusão */}
       <AlertDialog open={!!deletingContactId} onOpenChange={() => setDeletingContactId(null)}>
         <AlertDialogContent className="glass-popup border-blue-400/40">
           <AlertDialogHeader>

@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Note } from '@/types';
 import { useToast } from '@/hooks/use-toast';
@@ -8,13 +8,13 @@ export const useSupabaseNotesManager = () => {
   const [notes, setNotes] = useState<Note[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
+  const loadingRef = useRef(false);
+  const channelRef = useRef<any>(null);
 
-  useEffect(() => {
-    loadNotes();
-    setupRealtimeSubscription();
-  }, []);
+  const loadNotes = useCallback(async () => {
+    if (loadingRef.current) return;
+    loadingRef.current = true;
 
-  const loadNotes = async () => {
     try {
       const { data, error } = await supabase
         .from('notes')
@@ -41,29 +41,43 @@ export const useSupabaseNotesManager = () => {
       });
     } finally {
       setIsLoading(false);
+      loadingRef.current = false;
     }
-  };
+  }, [toast]);
 
-  const setupRealtimeSubscription = () => {
-    const channel = supabase
-      .channel('notes-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'notes'
-        },
-        () => {
+  useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
+    
+    loadNotes();
+
+    const debouncedReload = () => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        if (!loadingRef.current) {
           loadNotes();
         }
-      )
+      }, 500);
+    };
+
+    const channel = supabase
+      .channel('notes-changes')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'notes'
+      }, debouncedReload)
       .subscribe();
 
+    channelRef.current = channel;
+
     return () => {
-      supabase.removeChannel(channel);
+      clearTimeout(timeoutId);
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
     };
-  };
+  }, [loadNotes]);
 
   const addNote = async (noteData: Omit<Note, 'id' | 'createdAt'>) => {
     try {

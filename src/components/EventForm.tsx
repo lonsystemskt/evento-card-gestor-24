@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { X, Calendar as CalendarIcon, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -31,12 +32,11 @@ const EventForm: React.FC<EventFormProps> = ({
   });
   const [logoPreview, setLogoPreview] = useState<string | null>(initialData?.logo || null);
   const [datePickerOpen, setDatePickerOpen] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const modalRef = useRef<HTMLDivElement>(null);
   const calendarRef = useRef<HTMLDivElement>(null);
   const { uploadEventLogo } = useSupabaseEventManager();
 
-  // Atualizar dados quando initialData mudar
   useEffect(() => {
     if (initialData) {
       setFormData({
@@ -51,15 +51,12 @@ const EventForm: React.FC<EventFormProps> = ({
     }
   }, [initialData]);
 
-  // Fechar modal ao clicar fora, mas não no calendário
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (modalRef.current && !modalRef.current.contains(event.target as Node)) {
-        // Verificar se o clique foi no calendário
         if (calendarRef.current && calendarRef.current.contains(event.target as Node)) {
-          return; // Não fechar se clicou no calendário
+          return;
         }
-        // Se o calendário estiver aberto, não fechar o modal
         if (datePickerOpen) {
           return;
         }
@@ -78,18 +75,16 @@ const EventForm: React.FC<EventFormProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name.trim()) return;
+    if (!formData.name.trim() || isSubmitting) return;
 
-    setIsUploading(true);
+    setIsSubmitting(true);
     
     try {
       let logoUrl: string | undefined;
 
-      // Upload logo if a new file was selected
       if (formData.logo) {
         logoUrl = await uploadEventLogo(formData.logo) || undefined;
       } else if (initialData?.logo) {
-        // Keep existing logo if no new file was selected
         logoUrl = initialData.logo;
       }
 
@@ -97,23 +92,13 @@ const EventForm: React.FC<EventFormProps> = ({
         ...formData,
         logoUrl
       });
-
-      onClose();
       
-      // Reset form
       setFormData({ name: '', date: new Date(), logo: undefined });
       setLogoPreview(null);
     } catch (error) {
       console.error('Error submitting form:', error);
     } finally {
-      setIsUploading(false);
-    }
-  };
-
-  const handleDateSelect = (date: Date | undefined) => {
-    if (date) {
-      setFormData(prev => ({ ...prev, date }));
-      setDatePickerOpen(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -140,6 +125,7 @@ const EventForm: React.FC<EventFormProps> = ({
           </h2>
           <button
             onClick={onClose}
+            disabled={isSubmitting}
             className="p-2 hover:bg-white/10 rounded-lg transition-colors"
           >
             <X size={20} className="text-white" />
@@ -155,6 +141,7 @@ const EventForm: React.FC<EventFormProps> = ({
               onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
               placeholder="Digite o nome do evento"
               className="glass-card border-white/20 text-white placeholder:text-white/50"
+              disabled={isSubmitting}
               required
             />
           </div>
@@ -165,6 +152,7 @@ const EventForm: React.FC<EventFormProps> = ({
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
+                  disabled={isSubmitting}
                   className={cn(
                     "w-full justify-start text-left font-normal glass-card border-white/20 text-white hover:bg-white/10",
                     !formData.date && "text-white/50"
@@ -203,6 +191,7 @@ const EventForm: React.FC<EventFormProps> = ({
                   type="file"
                   accept="image/*"
                   onChange={handleLogoChange}
+                  disabled={isSubmitting}
                   className="hidden"
                 />
               </label>
@@ -221,16 +210,16 @@ const EventForm: React.FC<EventFormProps> = ({
               onClick={onClose}
               variant="outline"
               className="flex-1 glass-card border-white/20 text-white hover:bg-white/10"
-              disabled={isUploading}
+              disabled={isSubmitting}
             >
               Cancelar
             </Button>
             <Button
               type="submit"
               className="flex-1 bg-blue-500 hover:bg-blue-600 text-white"
-              disabled={isUploading}
+              disabled={isSubmitting}
             >
-              {isUploading ? 'Salvando...' : (initialData ? 'Atualizar' : 'Criar Evento')}
+              {isSubmitting ? 'Salvando...' : (initialData ? 'Atualizar' : 'Criar Evento')}
             </Button>
           </div>
         </form>

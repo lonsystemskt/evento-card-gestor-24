@@ -33,10 +33,10 @@ const DemandForm: React.FC<DemandFormProps> = ({
     date: initialData?.date || new Date()
   });
   const [datePickerOpen, setDatePickerOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const modalRef = useRef<HTMLDivElement>(null);
   const calendarRef = useRef<HTMLDivElement>(null);
 
-  // Atualizar dados quando initialData mudar
   useEffect(() => {
     if (initialData) {
       setFormData({
@@ -49,15 +49,12 @@ const DemandForm: React.FC<DemandFormProps> = ({
     }
   }, [initialData]);
 
-  // Fechar modal ao clicar fora
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (isModal && modalRef.current && !modalRef.current.contains(event.target as Node)) {
-        // Verificar se o clique foi no calendário
         if (calendarRef.current && calendarRef.current.contains(event.target as Node)) {
           return;
         }
-        // Se o calendário estiver aberto, não fechar o modal
         if (datePickerOpen) {
           return;
         }
@@ -74,15 +71,20 @@ const DemandForm: React.FC<DemandFormProps> = ({
     };
   }, [isModal, onCancel, datePickerOpen]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.title.trim() || !formData.subject.trim()) return;
+    if (!formData.title.trim() || !formData.subject.trim() || isSubmitting) return;
 
-    onSubmit(formData);
-    onCancel();
+    setIsSubmitting(true);
     
-    // Reset form
-    setFormData({ title: '', subject: '', date: new Date() });
+    try {
+      await onSubmit(formData);
+      setFormData({ title: '', subject: '', date: new Date() });
+    } catch (error) {
+      console.error('Error submitting demand:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleDateSelect = (date: Date | undefined) => {
@@ -103,6 +105,7 @@ const DemandForm: React.FC<DemandFormProps> = ({
             onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
             placeholder="Digite o título da demanda"
             className="glass-input border-white/20 text-white placeholder:text-white/50"
+            disabled={isSubmitting}
             required
           />
         </div>
@@ -116,6 +119,7 @@ const DemandForm: React.FC<DemandFormProps> = ({
             placeholder="Descreva o assunto da demanda"
             className="glass-input border-white/20 text-white placeholder:text-white/50 resize-none"
             rows={3}
+            disabled={isSubmitting}
             required
           />
         </div>
@@ -126,6 +130,7 @@ const DemandForm: React.FC<DemandFormProps> = ({
             <PopoverTrigger asChild>
               <Button
                 variant="outline"
+                disabled={isSubmitting}
                 className={cn(
                   "w-full justify-start text-left font-normal glass-input border-white/20 text-white hover:bg-white/10",
                   !formData.date && "text-white/50"
@@ -160,14 +165,16 @@ const DemandForm: React.FC<DemandFormProps> = ({
             onClick={onCancel}
             variant="outline"
             className="flex-1 glass-input border-white/20 text-white hover:bg-white/10 transition-all duration-200"
+            disabled={isSubmitting}
           >
             Cancelar
           </Button>
           <Button
             type="submit"
             className="flex-1 glass-button text-white hover:bg-teal-500/40 transition-all duration-200"
+            disabled={isSubmitting}
           >
-            {initialData ? 'Atualizar' : 'Criar Demanda'}
+            {isSubmitting ? 'Salvando...' : (initialData ? 'Atualizar' : 'Criar Demanda')}
           </Button>
         </div>
       </form>
@@ -184,6 +191,7 @@ const DemandForm: React.FC<DemandFormProps> = ({
             </h2>
             <button
               onClick={onCancel}
+              disabled={isSubmitting}
               className="p-2 hover:bg-white/10 rounded-lg transition-all duration-200"
             >
               <X size={20} className="text-white" />

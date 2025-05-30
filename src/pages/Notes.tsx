@@ -1,8 +1,9 @@
+
 import React, { useState } from 'react';
 import { Plus, Edit, Trash2 } from 'lucide-react';
 import Header from '@/components/Header';
 import NoteForm from '@/components/NoteForm';
-import { useNotesManager } from '@/hooks/useNotesManager';
+import { useSupabaseNotesManager } from '@/hooks/useSupabaseNotesManager';
 import { Note } from '@/types';
 import {
   Dialog,
@@ -20,55 +21,64 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { useToast } from '@/hooks/use-toast';
 
 const Notes = () => {
-  const { notes, addNote, updateNote, deleteNote } = useNotesManager();
+  const { notes, isLoading, addNote, updateNote, deleteNote } = useSupabaseNotesManager();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingNote, setEditingNote] = useState<Note | null>(null);
   const [deletingNoteId, setDeletingNoteId] = useState<string | null>(null);
-  const { toast } = useToast();
 
-  const truncateText = (text: string, maxLength: number = 40) => {
-    return text.length > maxLength ? `${text.substring(0, maxLength)}...` : text;
-  };
-
-  const handleAddNote = (noteData: any) => {
-    addNote(noteData);
-    setIsFormOpen(false);
-    toast({
-      title: "Anotação adicionada",
-      description: "A anotação foi adicionada com sucesso.",
-    });
+  const handleAddNote = async (noteData: any) => {
+    try {
+      await addNote(noteData);
+      setIsFormOpen(false);
+    } catch (error) {
+      console.error('Error adding note:', error);
+    }
   };
 
   const handleEditNote = (note: Note) => {
     setEditingNote(note);
   };
 
-  const handleUpdateNote = (noteData: any) => {
-    if (editingNote) {
-      updateNote(editingNote.id, noteData);
-      setEditingNote(null);
-      toast({
-        title: "Anotação atualizada",
-        description: "A anotação foi atualizada com sucesso.",
-      });
+  const handleUpdateNote = async (noteData: any) => {
+    try {
+      if (editingNote) {
+        await updateNote(editingNote.id, noteData);
+        setEditingNote(null);
+      }
+    } catch (error) {
+      console.error('Error updating note:', error);
     }
   };
 
-  const handleDeleteNote = (noteId: string) => {
-    deleteNote(noteId);
-    setDeletingNoteId(null);
-    toast({
-      title: "Anotação excluída",
-      description: "A anotação foi excluída com sucesso.",
-    });
+  const handleDeleteNote = async (noteId: string) => {
+    try {
+      await deleteNote(noteId);
+      setDeletingNoteId(null);
+    } catch (error) {
+      console.error('Error deleting note:', error);
+    }
   };
 
   const getOwnerColor = (owner: string) => {
     return owner === 'Thiago' ? 'text-blue-300' : 'text-purple-300';
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen w-full relative">
+        <Header />
+        <main className="pt-24 px-4 pb-8">
+          <div className="max-w-7xl mx-auto">
+            <div className="glass rounded-xl p-8 text-center">
+              <p className="text-white">Carregando...</p>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen w-full relative">
@@ -101,14 +111,12 @@ const Notes = () => {
               <div key={note.id} className="glass rounded-xl p-4 animate-fade-in">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
-                    {/* Assunto com quebra de linha */}
                     <div className="mb-3">
                       <span className="text-white font-medium text-sm leading-relaxed break-words">
                         {note.subject}
                       </span>
                     </div>
                     
-                    {/* Data e responsável na linha de baixo */}
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-4">
                         <span className="text-blue-300 text-sm">
@@ -121,7 +129,6 @@ const Notes = () => {
                     </div>
                   </div>
 
-                  {/* Ações */}
                   <div className="flex items-center space-x-2 flex-shrink-0">
                     <button
                       onClick={() => handleEditNote(note)}
@@ -151,7 +158,6 @@ const Notes = () => {
         </div>
       </main>
 
-      {/* Modal de criação */}
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
         <DialogContent className="glass-popup border-blue-400/40">
           <DialogHeader>
@@ -164,7 +170,6 @@ const Notes = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Modal de edição */}
       <Dialog open={!!editingNote} onOpenChange={() => setEditingNote(null)}>
         <DialogContent className="glass-popup border-blue-400/40">
           <DialogHeader>
@@ -184,7 +189,6 @@ const Notes = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Confirmação de exclusão */}
       <AlertDialog open={!!deletingNoteId} onOpenChange={() => setDeletingNoteId(null)}>
         <AlertDialogContent className="glass-popup border-blue-400/40">
           <AlertDialogHeader>
