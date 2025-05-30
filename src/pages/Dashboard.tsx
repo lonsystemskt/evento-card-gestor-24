@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Plus } from 'lucide-react';
 import Header from '@/components/Header';
@@ -81,6 +82,7 @@ const Dashboard = () => {
 
   const handleEditDemand = (demand: Demand) => {
     setEditingDemand(demand);
+    setSelectedEventId(demand.eventId);
     setShowDemandForm(true);
   };
 
@@ -120,9 +122,9 @@ const Dashboard = () => {
             <div></div>
             <button
               onClick={() => setShowEventForm(true)}
-              className="glass-button px-4 py-2 rounded-lg flex items-center space-x-2 hover:bg-blue-500/30 transition-all"
+              className="glass-button px-4 py-2 rounded-lg flex items-center space-x-2 hover:bg-teal-500/40 transition-all duration-200"
             >
-              <Plus size={16} className="text-blue-300" />
+              <Plus size={16} className="text-teal-300" />
               <span className="text-white">Novo Evento</span>
             </button>
           </div>
@@ -147,8 +149,8 @@ const Dashboard = () => {
             {activeEvents.length === 0 && (
               <div className="glass rounded-xl p-12 text-center">
                 <div className="max-w-md mx-auto">
-                  <div className="w-16 h-16 bg-blue-500/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                    <Plus size={32} className="text-blue-300" />
+                  <div className="w-16 h-16 bg-teal-500/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <Plus size={32} className="text-teal-300" />
                   </div>
                   <h3 className="text-xl font-bold text-white mb-2">Nenhum evento cadastrado</h3>
                   <p className="text-blue-200/70 mb-6">
@@ -156,7 +158,7 @@ const Dashboard = () => {
                   </p>
                   <button
                     onClick={() => setShowEventForm(true)}
-                    className="glass-button px-6 py-3 rounded-lg hover:bg-blue-500/30 transition-all"
+                    className="glass-button px-6 py-3 rounded-lg hover:bg-teal-500/40 transition-all duration-200"
                   >
                     <span className="text-white font-medium">Criar Primeiro Evento</span>
                   </button>
@@ -175,23 +177,17 @@ const Dashboard = () => {
       />
 
       {showDemandForm && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="glass rounded-xl p-6 w-full max-w-md mx-4">
-            <h2 className="text-xl font-bold text-white mb-4">
-              {editingDemand ? 'Editar Demanda' : 'Nova Demanda'}
-            </h2>
-            <DemandForm
-              eventId={selectedEventId}
-              onSubmit={handleDemandSubmit}
-              onCancel={closeDemandForm}
-              initialData={editingDemand ? {
-                title: editingDemand.title,
-                subject: editingDemand.subject,
-                date: editingDemand.date
-              } : undefined}
-            />
-          </div>
-        </div>
+        <DemandForm
+          eventId={selectedEventId}
+          onSubmit={handleDemandSubmit}
+          onCancel={closeDemandForm}
+          initialData={editingDemand ? {
+            title: editingDemand.title,
+            subject: editingDemand.subject,
+            date: editingDemand.date
+          } : undefined}
+          isModal={true}
+        />
       )}
     </div>
   );

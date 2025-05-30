@@ -46,16 +46,20 @@ const CompletedDemands = () => {
       <Header />
       
       <div className="pt-24 px-4">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-white mb-2">Demandas Concluídas</h1>
-          <p className="text-blue-200/70">Gerencie suas demandas concluídas organizadas por evento</p>
+        <div className="glass rounded-xl p-6 mb-6 text-left">
+          <h2 className="text-2xl font-bold text-white mb-4 text-left">
+            Demandas Concluídas
+          </h2>
+          <p className="text-blue-200/70 text-left">
+            Gerencie suas demandas concluídas organizadas por evento
+          </p>
         </div>
 
         {Object.keys(groupedDemands).length === 0 ? (
           <div className="glass rounded-xl p-12 text-center">
             <div className="max-w-md mx-auto">
-              <div className="w-16 h-16 bg-green-500/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <AlertCircle size={32} className="text-green-300" />
+              <div className="w-16 h-16 bg-teal-500/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <AlertCircle size={32} className="text-teal-300" />
               </div>
               <h3 className="text-xl font-bold text-white mb-2">Nenhuma demanda concluída</h3>
               <p className="text-blue-200/70">
@@ -72,8 +76,8 @@ const CompletedDemands = () => {
                     {event.logo ? (
                       <img src={event.logo} alt={event.name} className="w-full h-full object-cover" />
                     ) : (
-                      <div className="w-8 h-8 bg-green-500/30 rounded-lg flex items-center justify-center">
-                        <span className="text-green-300 font-bold text-sm">
+                      <div className="w-8 h-8 bg-teal-500/30 rounded-lg flex items-center justify-center">
+                        <span className="text-teal-300 font-bold text-sm">
                           {event.name.charAt(0).toUpperCase()}
                         </span>
                       </div>
@@ -94,26 +98,34 @@ const CompletedDemands = () => {
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <div className="flex items-center space-x-2 mb-2">
-                            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                            <div className="w-2 h-2 bg-teal-500 rounded-full"></div>
                             <h4 className="text-white font-medium">{demand.title}</h4>
                           </div>
                           <p className="text-blue-200/70 text-sm mb-2">{demand.subject}</p>
-                          <p className="text-blue-300 text-xs">
-                            Concluída em: {demand.date.toLocaleDateString('pt-BR')}
+                          <p className="text-teal-300 text-xs">
+                            Concluída em: {demand.date.toLocaleDateString('pt-BR', {
+                              year: 'numeric',
+                              month: '2-digit',
+                              day: '2-digit',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
                           </p>
                         </div>
                         
                         <div className="flex items-center space-x-2 ml-4">
                           <button
                             onClick={() => handleRestore(demand.id)}
-                            className="glass-button p-2 rounded-lg hover:bg-blue-500/30 transition-all"
+                            className="glass-button p-2 rounded-lg hover:bg-teal-500/40 transition-all duration-200"
+                            title="Restaurar demanda"
                           >
-                            <RotateCcw size={14} className="text-blue-300" />
+                            <RotateCcw size={14} className="text-teal-300" />
                           </button>
                           
                           <button
                             onClick={() => handlePermanentDelete(demand.id)}
-                            className="glass-button p-2 rounded-lg hover:bg-red-500/30 transition-all"
+                            className="glass-button p-2 rounded-lg hover:bg-red-500/30 transition-all duration-200"
+                            title="Excluir permanentemente"
                           >
                             <Trash2 size={14} className="text-red-300" />
                           </button>

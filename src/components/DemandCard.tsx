@@ -30,7 +30,7 @@ const DemandCard: React.FC<DemandCardProps> = ({
     switch (status) {
       case 'overdue': return 'bg-red-500';
       case 'current': return 'bg-orange-500';
-      case 'upcoming': return 'bg-green-500';
+      case 'upcoming': return 'bg-teal-500';
     }
   };
 
@@ -55,7 +55,7 @@ const DemandCard: React.FC<DemandCardProps> = ({
             {demand.subject}
           </p>
           
-          <p className="text-xs text-blue-300 font-medium">
+          <p className="text-xs text-teal-300 font-medium">
             {demand.date.toLocaleDateString('pt-BR')}
           </p>
         </div>
@@ -63,15 +63,15 @@ const DemandCard: React.FC<DemandCardProps> = ({
         <div className="flex flex-col space-y-1 flex-shrink-0">
           <button
             onClick={() => onEdit(demand)}
-            className="p-1.5 hover:bg-blue-500/20 rounded transition-colors"
+            className="p-1.5 hover:bg-teal-500/40 rounded transition-all duration-200"
             title="Editar demanda"
           >
-            <Edit size={12} className="text-blue-300" />
+            <Edit size={12} className="text-teal-300" />
           </button>
           
           <button
             onClick={() => onComplete(demand.id)}
-            className="p-1.5 hover:bg-green-500/20 rounded transition-colors"
+            className="p-1.5 hover:bg-green-500/30 rounded transition-all duration-200"
             title="Marcar como concluída"
           >
             <CheckCircle size={12} className="text-green-300" />
@@ -79,7 +79,7 @@ const DemandCard: React.FC<DemandCardProps> = ({
           
           <button
             onClick={() => onDelete(demand.id)}
-            className="p-1.5 hover:bg-red-500/20 rounded transition-colors"
+            className="p-1.5 hover:bg-red-500/30 rounded transition-all duration-200"
             title="Excluir demanda"
           >
             <Trash2 size={12} className="text-red-300" />

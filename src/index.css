@@ -62,7 +62,7 @@
   }
   
   .glass-button {
-    @apply bg-teal-500/20 hover:bg-teal-500/30 backdrop-blur-lg border border-teal-400/30 transition-all duration-200 shadow-lg;
+    @apply bg-teal-500/20 hover:bg-teal-500/40 backdrop-blur-lg border border-teal-400/30 transition-all duration-200 shadow-lg;
   }
   
   .glass-input {
@@ -71,6 +71,27 @@
   
   .floating-box {
     @apply glass rounded-2xl p-6 animate-fade-in;
+  }
+
+  /* Efeitos hover padronizados */
+  .hover-effect {
+    @apply hover:bg-teal-500/40 transition-all duration-200;
+  }
+
+  .hover-effect-red {
+    @apply hover:bg-red-500/30 transition-all duration-200;
+  }
+
+  .hover-effect-green {
+    @apply hover:bg-green-500/30 transition-all duration-200;
+  }
+
+  .hover-effect-blue {
+    @apply hover:bg-blue-500/30 transition-all duration-200;
+  }
+
+  .hover-effect-orange {
+    @apply hover:bg-orange-500/30 transition-all duration-200;
   }
 
   /* Responsividade para elementos específicos */

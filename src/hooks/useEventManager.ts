@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Event, Demand } from '@/types';
 
@@ -95,9 +96,20 @@ export const useEventManager = () => {
   };
 
   const updateDemand = (id: string, updates: Partial<Demand>) => {
-    setDemands(prev => prev.map(demand => 
-      demand.id === id ? { ...demand, ...updates } : demand
-    ));
+    setDemands(prev => prev.map(demand => {
+      if (demand.id === id) {
+        // Se está marcando como concluída, atualizar a data para agora
+        if (updates.isCompleted === true && !demand.isCompleted) {
+          return { 
+            ...demand, 
+            ...updates, 
+            date: new Date() // Atualiza para data/hora atual
+          };
+        }
+        return { ...demand, ...updates };
+      }
+      return demand;
+    }));
   };
 
   const deleteDemand = (id: string) => {

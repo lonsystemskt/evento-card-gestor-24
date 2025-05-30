@@ -17,13 +17,15 @@ interface DemandFormProps {
   onSubmit: (data: DemandFormData) => void;
   onCancel: () => void;
   initialData?: DemandFormData;
+  isModal?: boolean;
 }
 
 const DemandForm: React.FC<DemandFormProps> = ({
   eventId,
   onSubmit,
   onCancel,
-  initialData
+  initialData,
+  isModal = false
 }) => {
   const [formData, setFormData] = useState<DemandFormData>({
     title: initialData?.title || '',
@@ -31,6 +33,8 @@ const DemandForm: React.FC<DemandFormProps> = ({
     date: initialData?.date || new Date()
   });
   const [datePickerOpen, setDatePickerOpen] = useState(false);
+  const modalRef = useRef<HTMLDivElement>(null);
+  const calendarRef = useRef<HTMLDivElement>(null);
 
   // Atualizar dados quando initialData mudar
   useEffect(() => {
@@ -44,6 +48,31 @@ const DemandForm: React.FC<DemandFormProps> = ({
       setFormData({ title: '', subject: '', date: new Date() });
     }
   }, [initialData]);
+
+  // Fechar modal ao clicar fora
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (isModal && modalRef.current && !modalRef.current.contains(event.target as Node)) {
+        // Verificar se o clique foi no calendário
+        if (calendarRef.current && calendarRef.current.contains(event.target as Node)) {
+          return;
+        }
+        // Se o calendário estiver aberto, não fechar o modal
+        if (datePickerOpen) {
+          return;
+        }
+        onCancel();
+      }
+    };
+
+    if (isModal) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isModal, onCancel, datePickerOpen]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -63,7 +92,7 @@ const DemandForm: React.FC<DemandFormProps> = ({
     }
   };
 
-  return (
+  const formContent = (
     <div className="space-y-4">
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
@@ -73,7 +102,7 @@ const DemandForm: React.FC<DemandFormProps> = ({
             value={formData.title}
             onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
             placeholder="Digite o título da demanda"
-            className="glass-card border-white/20 text-white placeholder:text-white/50"
+            className="glass-input border-white/20 text-white placeholder:text-white/50"
             required
           />
         </div>
@@ -85,7 +114,7 @@ const DemandForm: React.FC<DemandFormProps> = ({
             value={formData.subject}
             onChange={(e) => setFormData(prev => ({ ...prev, subject: e.target.value }))}
             placeholder="Descreva o assunto da demanda"
-            className="glass-card border-white/20 text-white placeholder:text-white/50 resize-none"
+            className="glass-input border-white/20 text-white placeholder:text-white/50 resize-none"
             rows={3}
             required
           />
@@ -98,7 +127,7 @@ const DemandForm: React.FC<DemandFormProps> = ({
               <Button
                 variant="outline"
                 className={cn(
-                  "w-full justify-start text-left font-normal glass-card border-white/20 text-white hover:bg-white/10",
+                  "w-full justify-start text-left font-normal glass-input border-white/20 text-white hover:bg-white/10",
                   !formData.date && "text-white/50"
                 )}
               >
@@ -112,13 +141,15 @@ const DemandForm: React.FC<DemandFormProps> = ({
               side="top"
               sideOffset={10}
             >
-              <Calendar
-                mode="single"
-                selected={formData.date}
-                onSelect={handleDateSelect}
-                initialFocus
-                className="p-3 pointer-events-auto"
-              />
+              <div ref={calendarRef} className="pointer-events-auto">
+                <Calendar
+                  mode="single"
+                  selected={formData.date}
+                  onSelect={handleDateSelect}
+                  initialFocus
+                  className="p-3 pointer-events-auto"
+                />
+              </div>
             </PopoverContent>
           </Popover>
         </div>
@@ -128,13 +159,13 @@ const DemandForm: React.FC<DemandFormProps> = ({
             type="button"
             onClick={onCancel}
             variant="outline"
-            className="flex-1 glass-card border-white/20 text-white hover:bg-white/10"
+            className="flex-1 glass-input border-white/20 text-white hover:bg-white/10 transition-all duration-200"
           >
             Cancelar
           </Button>
           <Button
             type="submit"
-            className="flex-1 bg-blue-500 hover:bg-blue-600 text-white"
+            className="flex-1 glass-button text-white hover:bg-teal-500/40 transition-all duration-200"
           >
             {initialData ? 'Atualizar' : 'Criar Demanda'}
           </Button>
@@ -142,6 +173,29 @@ const DemandForm: React.FC<DemandFormProps> = ({
       </form>
     </div>
   );
+
+  if (isModal) {
+    return (
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div ref={modalRef} className="glass-popup rounded-2xl p-6 w-full max-w-md animate-fade-in">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-bold text-white text-left">
+              {initialData ? 'Editar Demanda' : 'Nova Demanda'}
+            </h2>
+            <button
+              onClick={onCancel}
+              className="p-2 hover:bg-white/10 rounded-lg transition-all duration-200"
+            >
+              <X size={20} className="text-white" />
+            </button>
+          </div>
+          {formContent}
+        </div>
+      </div>
+    );
+  }
+
+  return formContent;
 };
 
 export default DemandForm;
