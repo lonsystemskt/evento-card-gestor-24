@@ -9,7 +9,146 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      crm_contacts: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          name: string
+          phone: string
+          priority_date: string
+          subject: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          name: string
+          phone: string
+          priority_date: string
+          subject: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          name?: string
+          phone?: string
+          priority_date?: string
+          subject?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      demands: {
+        Row: {
+          created_at: string
+          date: string
+          event_id: string
+          id: string
+          is_archived: boolean
+          is_completed: boolean
+          subject: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          event_id: string
+          id?: string
+          is_archived?: boolean
+          is_completed?: boolean
+          subject: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          event_id?: string
+          id?: string
+          is_archived?: boolean
+          is_completed?: boolean
+          subject?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "demands_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      events: {
+        Row: {
+          created_at: string
+          date: string
+          id: string
+          is_archived: boolean
+          is_priority: boolean
+          logo: string | null
+          name: string
+          priority_order: number | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          id?: string
+          is_archived?: boolean
+          is_priority?: boolean
+          logo?: string | null
+          name: string
+          priority_order?: number | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          id?: string
+          is_archived?: boolean
+          is_priority?: boolean
+          logo?: string | null
+          name?: string
+          priority_order?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      notes: {
+        Row: {
+          created_at: string
+          id: string
+          owner: string
+          priority_date: string
+          subject: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          owner: string
+          priority_date: string
+          subject: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          owner?: string
+          priority_date?: string
+          subject?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

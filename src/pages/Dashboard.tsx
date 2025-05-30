@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Plus } from 'lucide-react';
 import Header from '@/components/Header';
@@ -6,11 +5,12 @@ import SummaryIndicators from '@/components/SummaryIndicators';
 import EventRow from '@/components/EventRow';
 import EventForm from '@/components/EventForm';
 import DemandForm from '@/components/DemandForm';
-import { useEventManager } from '@/hooks/useEventManager';
+import { useSupabaseEventManager } from '@/hooks/useSupabaseEventManager';
 import { Event, Demand, EventFormData, DemandFormData } from '@/types';
 
 const Dashboard = () => {
   const {
+    isLoading,
     addEvent,
     updateEvent,
     deleteEvent,
@@ -21,7 +21,7 @@ const Dashboard = () => {
     getActiveEvents,
     getActiveDemands,
     getCompletedDemands
-  } = useEventManager();
+  } = useSupabaseEventManager();
 
   const [showEventForm, setShowEventForm] = useState(false);
   const [showDemandForm, setShowDemandForm] = useState(false);
@@ -34,31 +34,31 @@ const Dashboard = () => {
   const completedDemands = getCompletedDemands();
   const archivedEvents = 0;
 
-  const handleEventSubmit = (data: EventFormData) => {
+  const handleEventSubmit = async (data: EventFormData & { logoUrl?: string }) => {
     if (editingEvent) {
-      updateEvent(editingEvent.id, {
+      await updateEvent(editingEvent.id, {
         name: data.name,
         date: data.date,
-        logo: data.logo ? URL.createObjectURL(data.logo) : editingEvent.logo
+        logo: data.logoUrl
       });
       setEditingEvent(null);
     } else {
-      addEvent({
+      await addEvent({
         name: data.name,
         date: data.date,
-        logo: data.logo ? URL.createObjectURL(data.logo) : undefined,
+        logo: data.logoUrl,
         isArchived: false,
         isPriority: false
       });
     }
   };
 
-  const handleDemandSubmit = (data: DemandFormData) => {
+  const handleDemandSubmit = async (data: DemandFormData) => {
     if (editingDemand) {
-      updateDemand(editingDemand.id, data);
+      await updateDemand(editingDemand.id, data);
       setEditingDemand(null);
     } else {
-      addDemand({
+      await addDemand({
         ...data,
         eventId: selectedEventId,
         isCompleted: false,
@@ -83,12 +83,12 @@ const Dashboard = () => {
     setShowDemandForm(true);
   };
 
-  const handleArchiveEvent = (id: string) => {
-    updateEvent(id, { isArchived: true });
+  const handleArchiveEvent = async (id: string) => {
+    await updateEvent(id, { isArchived: true });
   };
 
-  const handleCompleteDemand = (id: string) => {
-    updateDemand(id, { isCompleted: true });
+  const handleCompleteDemand = async (id: string) => {
+    await updateDemand(id, { isCompleted: true });
   };
 
   const closeEventForm = () => {
@@ -101,6 +101,21 @@ const Dashboard = () => {
     setEditingDemand(null);
     setSelectedEventId('');
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen w-full relative">
+        <Header />
+        <div className="pt-24 px-4 pb-8">
+          <div className="max-w-7xl mx-auto">
+            <div className="glass rounded-xl p-8 text-center">
+              <p className="text-white">Carregando...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen w-full relative">
@@ -132,12 +147,22 @@ const Dashboard = () => {
                 key={event.id}
                 event={event}
                 demands={getActiveDemands(event.id)}
-                onAddDemand={handleAddDemand}
-                onEditEvent={handleEditEvent}
+                onAddDemand={(eventId) => {
+                  setSelectedEventId(eventId);
+                  setShowDemandForm(true);
+                }}
+                onEditEvent={(event) => {
+                  setEditingEvent(event);
+                  setShowEventForm(true);
+                }}
                 onArchiveEvent={handleArchiveEvent}
                 onDeleteEvent={deleteEvent}
                 onTogglePriority={toggleEventPriority}
-                onEditDemand={handleEditDemand}
+                onEditDemand={(demand) => {
+                  setEditingDemand(demand);
+                  setSelectedEventId(demand.eventId);
+                  setShowDemandForm(true);
+                }}
                 onCompleteDemand={handleCompleteDemand}
                 onDeleteDemand={deleteDemand}
               />
@@ -168,7 +193,10 @@ const Dashboard = () => {
 
       <EventForm
         isOpen={showEventForm}
-        onClose={closeEventForm}
+        onClose={() => {
+          setShowEventForm(false);
+          setEditingEvent(null);
+        }}
         onSubmit={handleEventSubmit}
         initialData={editingEvent || undefined}
       />
@@ -177,7 +205,11 @@ const Dashboard = () => {
         <DemandForm
           eventId={selectedEventId}
           onSubmit={handleDemandSubmit}
-          onCancel={closeDemandForm}
+          onCancel={() => {
+            setShowDemandForm(false);
+            setEditingDemand(null);
+            setSelectedEventId('');
+          }}
           initialData={editingDemand ? {
             title: editingDemand.title,
             subject: editingDemand.subject,

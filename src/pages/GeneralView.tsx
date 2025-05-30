@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Edit, Trash2 } from 'lucide-react';
 import Header from '@/components/Header';
 import DemandForm from '@/components/DemandForm';
-import { useEventManager } from '@/hooks/useEventManager';
+import { useSupabaseEventManager } from '@/hooks/useSupabaseEventManager';
 import { Demand, Event } from '@/types';
 import {
   Dialog,
@@ -21,19 +21,18 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { useToast } from '@/hooks/use-toast';
 
 const GeneralView = () => {
   const { 
+    isLoading,
     getActiveEvents, 
     getActiveDemands, 
     updateDemand, 
     deleteDemand 
-  } = useEventManager();
+  } = useSupabaseEventManager();
   
   const [editingDemand, setEditingDemand] = useState<Demand | null>(null);
   const [deletingDemandId, setDeletingDemandId] = useState<string | null>(null);
-  const { toast } = useToast();
 
   const events = getActiveEvents();
   const allDemands = getActiveDemands();
@@ -50,29 +49,36 @@ const GeneralView = () => {
     setEditingDemand(demand);
   };
 
-  const handleUpdateDemand = (demandData: any) => {
+  const handleUpdateDemand = async (demandData: any) => {
     if (editingDemand) {
-      updateDemand(editingDemand.id, {
+      await updateDemand(editingDemand.id, {
         title: demandData.title,
         subject: demandData.subject,
         date: demandData.date
       });
       setEditingDemand(null);
-      toast({
-        title: "Demanda atualizada",
-        description: "A demanda foi atualizada com sucesso.",
-      });
     }
   };
 
-  const handleDeleteDemand = (demandId: string) => {
-    deleteDemand(demandId);
+  const handleDeleteDemand = async (demandId: string) => {
+    await deleteDemand(demandId);
     setDeletingDemandId(null);
-    toast({
-      title: "Demanda excluída",
-      description: "A demanda foi excluída com sucesso.",
-    });
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen w-full relative">
+        <Header />
+        <main className="pt-24 px-4 pb-8">
+          <div className="max-w-7xl mx-auto">
+            <div className="glass rounded-xl p-8 text-center">
+              <p className="text-white">Carregando...</p>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen w-full relative">

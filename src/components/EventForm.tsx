@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { X, Calendar as CalendarIcon, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -10,11 +9,12 @@ import { Event, EventFormData } from '@/types';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { useSupabaseEventManager } from '@/hooks/useSupabaseEventManager';
 
 interface EventFormProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: EventFormData) => void;
+  onSubmit: (data: EventFormData & { logoUrl?: string }) => void;
   initialData?: Event;
 }
 
@@ -31,8 +31,10 @@ const EventForm: React.FC<EventFormProps> = ({
   });
   const [logoPreview, setLogoPreview] = useState<string | null>(initialData?.logo || null);
   const [datePickerOpen, setDatePickerOpen] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const modalRef = useRef<HTMLDivElement>(null);
   const calendarRef = useRef<HTMLDivElement>(null);
+  const { uploadEventLogo } = useSupabaseEventManager();
 
   // Atualizar dados quando initialData mudar
   useEffect(() => {
@@ -74,16 +76,38 @@ const EventForm: React.FC<EventFormProps> = ({
     };
   }, [isOpen, onClose, datePickerOpen]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name.trim()) return;
 
-    onSubmit(formData);
-    onClose();
+    setIsUploading(true);
     
-    // Reset form
-    setFormData({ name: '', date: new Date(), logo: undefined });
-    setLogoPreview(null);
+    try {
+      let logoUrl: string | undefined;
+
+      // Upload logo if a new file was selected
+      if (formData.logo) {
+        logoUrl = await uploadEventLogo(formData.logo) || undefined;
+      } else if (initialData?.logo) {
+        // Keep existing logo if no new file was selected
+        logoUrl = initialData.logo;
+      }
+
+      await onSubmit({
+        ...formData,
+        logoUrl
+      });
+
+      onClose();
+      
+      // Reset form
+      setFormData({ name: '', date: new Date(), logo: undefined });
+      setLogoPreview(null);
+    } catch (error) {
+      console.error('Error submitting form:', error);
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const handleDateSelect = (date: Date | undefined) => {
@@ -160,7 +184,7 @@ const EventForm: React.FC<EventFormProps> = ({
                   <Calendar
                     mode="single"
                     selected={formData.date}
-                    onSelect={handleDateSelect}
+                    onSelect={(date) => date && setFormData(prev => ({ ...prev, date }))}
                     initialFocus
                     className="p-3 pointer-events-auto"
                   />
@@ -197,14 +221,16 @@ const EventForm: React.FC<EventFormProps> = ({
               onClick={onClose}
               variant="outline"
               className="flex-1 glass-card border-white/20 text-white hover:bg-white/10"
+              disabled={isUploading}
             >
               Cancelar
             </Button>
             <Button
               type="submit"
               className="flex-1 bg-blue-500 hover:bg-blue-600 text-white"
+              disabled={isUploading}
             >
-              {initialData ? 'Atualizar' : 'Criar Evento'}
+              {isUploading ? 'Salvando...' : (initialData ? 'Atualizar' : 'Criar Evento')}
             </Button>
           </div>
         </form>
