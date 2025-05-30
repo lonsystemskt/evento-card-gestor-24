@@ -8,15 +8,13 @@ export const useSupabaseCRMManager = () => {
   const [contacts, setContacts] = useState<CRMContact[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
-  const loadingRef = useRef(false);
-  const channelRef = useRef<any>(null);
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const loadContacts = useCallback(async (skipLoading = false) => {
-    if (loadingRef.current && !skipLoading) return;
-    if (!skipLoading) loadingRef.current = true;
-
     try {
-      console.log('Loading CRM contacts from Supabase...');
+      if (!skipLoading) {
+        console.log('Loading CRM contacts from Supabase...');
+      }
       
       const { data, error } = await supabase
         .from('crm_contacts')
@@ -35,51 +33,41 @@ export const useSupabaseCRMManager = () => {
         createdAt: new Date(contact.created_at)
       }));
 
-      console.log('CRM contacts loaded:', transformedContacts.length);
+      if (!skipLoading) {
+        console.log('CRM contacts loaded:', transformedContacts.length);
+      }
       setContacts(transformedContacts);
     } catch (error) {
       console.error('Error loading contacts:', error);
-      toast({
-        title: "Erro ao carregar contatos",
-        description: "Ocorreu um erro ao carregar os contatos do banco de dados.",
-        variant: "destructive"
-      });
+      if (!skipLoading) {
+        toast({
+          title: "Erro ao carregar contatos",
+          description: "Ocorreu um erro ao carregar os contatos do banco de dados.",
+          variant: "destructive"
+        });
+      }
     } finally {
       if (!skipLoading) {
         setIsLoading(false);
-        loadingRef.current = false;
       }
     }
   }, [toast]);
 
   useEffect(() => {
-    console.log('Setting up CRM contacts real-time subscription...');
+    console.log('Iniciando sistema de polling para CRM a cada 5 segundos...');
     
     loadContacts();
 
-    const handleRealtimeChange = (payload: any) => {
-      console.log('CRM contacts real-time change detected:', payload);
+    pollingIntervalRef.current = setInterval(() => {
+      console.log('Executando polling para atualizar CRM contacts...');
       loadContacts(true);
-    };
-
-    const channel = supabase
-      .channel('crm-contacts-realtime')
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'crm_contacts'
-      }, handleRealtimeChange)
-      .subscribe();
-
-    channelRef.current = channel;
-
-    console.log('CRM contacts real-time channel subscribed');
+    }, 5000);
 
     return () => {
-      console.log('Cleaning up CRM contacts real-time subscription...');
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
-        channelRef.current = null;
+      console.log('Limpando sistema de polling para CRM...');
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current = null;
       }
     };
   }, [loadContacts]);

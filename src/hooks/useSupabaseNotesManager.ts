@@ -8,15 +8,13 @@ export const useSupabaseNotesManager = () => {
   const [notes, setNotes] = useState<Note[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
-  const loadingRef = useRef(false);
-  const channelRef = useRef<any>(null);
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const loadNotes = useCallback(async (skipLoading = false) => {
-    if (loadingRef.current && !skipLoading) return;
-    if (!skipLoading) loadingRef.current = true;
-
     try {
-      console.log('Loading notes from Supabase...');
+      if (!skipLoading) {
+        console.log('Loading notes from Supabase...');
+      }
       
       const { data, error } = await supabase
         .from('notes')
@@ -33,51 +31,41 @@ export const useSupabaseNotesManager = () => {
         createdAt: new Date(note.created_at)
       }));
 
-      console.log('Notes loaded:', transformedNotes.length);
+      if (!skipLoading) {
+        console.log('Notes loaded:', transformedNotes.length);
+      }
       setNotes(transformedNotes);
     } catch (error) {
       console.error('Error loading notes:', error);
-      toast({
-        title: "Erro ao carregar anotações",
-        description: "Ocorreu um erro ao carregar as anotações do banco de dados.",
-        variant: "destructive"
-      });
+      if (!skipLoading) {
+        toast({
+          title: "Erro ao carregar anotações",
+          description: "Ocorreu um erro ao carregar as anotações do banco de dados.",
+          variant: "destructive"
+        });
+      }
     } finally {
       if (!skipLoading) {
         setIsLoading(false);
-        loadingRef.current = false;
       }
     }
   }, [toast]);
 
   useEffect(() => {
-    console.log('Setting up notes real-time subscription...');
+    console.log('Iniciando sistema de polling para notes a cada 5 segundos...');
     
     loadNotes();
 
-    const handleRealtimeChange = (payload: any) => {
-      console.log('Notes real-time change detected:', payload);
+    pollingIntervalRef.current = setInterval(() => {
+      console.log('Executando polling para atualizar notes...');
       loadNotes(true);
-    };
-
-    const channel = supabase
-      .channel('notes-realtime')
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'notes'
-      }, handleRealtimeChange)
-      .subscribe();
-
-    channelRef.current = channel;
-
-    console.log('Notes real-time channel subscribed');
+    }, 5000);
 
     return () => {
-      console.log('Cleaning up notes real-time subscription...');
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
-        channelRef.current = null;
+      console.log('Limpando sistema de polling para notes...');
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current = null;
       }
     };
   }, [loadNotes]);

@@ -9,18 +9,14 @@ export const useSupabaseEventManager = () => {
   const [demands, setDemands] = useState<Demand[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
-  const loadingRef = useRef(false);
-  const channelsRef = useRef<any[]>([]);
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Função de carregamento sem debounce para real-time
   const loadData = useCallback(async (skipLoading = false) => {
-    if (loadingRef.current && !skipLoading) return;
-    if (!skipLoading) loadingRef.current = true;
-
     try {
-      console.log('Loading data from Supabase...');
+      if (!skipLoading) {
+        console.log('Loading data from Supabase...');
+      }
       
-      // Carregar dados em paralelo
       const [eventsResponse, demandsResponse] = await Promise.all([
         supabase
           .from('events')
@@ -57,69 +53,47 @@ export const useSupabaseEventManager = () => {
         createdAt: new Date(demand.created_at)
       }));
 
-      console.log('Data loaded:', { events: transformedEvents.length, demands: transformedDemands.length });
+      if (!skipLoading) {
+        console.log('Data loaded:', { events: transformedEvents.length, demands: transformedDemands.length });
+      }
       
       setEvents(transformedEvents);
       setDemands(transformedDemands);
     } catch (error) {
       console.error('Error loading data:', error);
-      toast({
-        title: "Erro ao carregar dados",
-        description: "Ocorreu um erro ao carregar os dados.",
-        variant: "destructive"
-      });
+      if (!skipLoading) {
+        toast({
+          title: "Erro ao carregar dados",
+          description: "Ocorreu um erro ao carregar os dados.",
+          variant: "destructive"
+        });
+      }
     } finally {
       if (!skipLoading) {
         setIsLoading(false);
-        loadingRef.current = false;
       }
     }
   }, [toast]);
 
-  // Configurar real-time com recarregamento imediato
+  // Sistema de polling a cada 5 segundos
   useEffect(() => {
-    console.log('Setting up real-time subscriptions...');
+    console.log('Iniciando sistema de polling a cada 5 segundos...');
     
-    // Carregar dados iniciais
+    // Carregamento inicial
     loadData();
 
-    // Função de recarregamento imediato para real-time
-    const handleRealtimeChange = (payload: any) => {
-      console.log('Real-time change detected:', payload);
-      // Recarregar dados imediatamente sem debounce
-      loadData(true);
-    };
-
-    // Canal para eventos
-    const eventsChannel = supabase
-      .channel('events-realtime')
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'events'
-      }, handleRealtimeChange)
-      .subscribe();
-
-    // Canal para demandas
-    const demandsChannel = supabase
-      .channel('demands-realtime')
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'demands'
-      }, handleRealtimeChange)
-      .subscribe();
-
-    channelsRef.current = [eventsChannel, demandsChannel];
-
-    console.log('Real-time channels subscribed');
+    // Configurar polling a cada 5 segundos
+    pollingIntervalRef.current = setInterval(() => {
+      console.log('Executando polling para atualizar dados...');
+      loadData(true); // skipLoading = true para não mostrar loading durante o polling
+    }, 5000);
 
     return () => {
-      console.log('Cleaning up real-time subscriptions...');
-      channelsRef.current.forEach(channel => {
-        supabase.removeChannel(channel);
-      });
-      channelsRef.current = [];
+      console.log('Limpando sistema de polling...');
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current = null;
+      }
     };
   }, [loadData]);
 
