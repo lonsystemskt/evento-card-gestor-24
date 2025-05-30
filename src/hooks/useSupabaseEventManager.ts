@@ -12,12 +12,14 @@ export const useSupabaseEventManager = () => {
   const loadingRef = useRef(false);
   const channelsRef = useRef<any[]>([]);
 
-  // Função de carregamento otimizada com debounce
-  const loadData = useCallback(async () => {
-    if (loadingRef.current) return;
-    loadingRef.current = true;
+  // Função de carregamento sem debounce para real-time
+  const loadData = useCallback(async (skipLoading = false) => {
+    if (loadingRef.current && !skipLoading) return;
+    if (!skipLoading) loadingRef.current = true;
 
     try {
+      console.log('Loading data from Supabase...');
+      
       // Carregar dados em paralelo
       const [eventsResponse, demandsResponse] = await Promise.all([
         supabase
@@ -55,6 +57,8 @@ export const useSupabaseEventManager = () => {
         createdAt: new Date(demand.created_at)
       }));
 
+      console.log('Data loaded:', { events: transformedEvents.length, demands: transformedDemands.length });
+      
       setEvents(transformedEvents);
       setDemands(transformedDemands);
     } catch (error) {
@@ -65,52 +69,53 @@ export const useSupabaseEventManager = () => {
         variant: "destructive"
       });
     } finally {
-      setIsLoading(false);
-      loadingRef.current = false;
+      if (!skipLoading) {
+        setIsLoading(false);
+        loadingRef.current = false;
+      }
     }
   }, [toast]);
 
-  // Configurar real-time otimizado
+  // Configurar real-time com recarregamento imediato
   useEffect(() => {
-    let timeoutId: NodeJS.Timeout;
+    console.log('Setting up real-time subscriptions...');
     
     // Carregar dados iniciais
     loadData();
 
-    // Real-time com debounce
-    const debouncedReload = () => {
-      clearTimeout(timeoutId);
-      timeoutId = setTimeout(() => {
-        if (!loadingRef.current) {
-          loadData();
-        }
-      }, 500);
+    // Função de recarregamento imediato para real-time
+    const handleRealtimeChange = (payload: any) => {
+      console.log('Real-time change detected:', payload);
+      // Recarregar dados imediatamente sem debounce
+      loadData(true);
     };
 
-    // Canal único para eventos
+    // Canal para eventos
     const eventsChannel = supabase
-      .channel('events-changes')
+      .channel('events-realtime')
       .on('postgres_changes', {
         event: '*',
         schema: 'public',
         table: 'events'
-      }, debouncedReload)
+      }, handleRealtimeChange)
       .subscribe();
 
-    // Canal único para demandas
+    // Canal para demandas
     const demandsChannel = supabase
-      .channel('demands-changes')
+      .channel('demands-realtime')
       .on('postgres_changes', {
         event: '*',
         schema: 'public',
         table: 'demands'
-      }, debouncedReload)
+      }, handleRealtimeChange)
       .subscribe();
 
     channelsRef.current = [eventsChannel, demandsChannel];
 
+    console.log('Real-time channels subscribed');
+
     return () => {
-      clearTimeout(timeoutId);
+      console.log('Cleaning up real-time subscriptions...');
       channelsRef.current.forEach(channel => {
         supabase.removeChannel(channel);
       });
@@ -148,6 +153,8 @@ export const useSupabaseEventManager = () => {
 
   const addEvent = async (eventData: Omit<Event, 'id' | 'createdAt'>) => {
     try {
+      console.log('Adding event:', eventData);
+      
       const { data, error } = await supabase
         .from('events')
         .insert({
@@ -162,6 +169,8 @@ export const useSupabaseEventManager = () => {
         .single();
 
       if (error) throw error;
+
+      console.log('Event added successfully:', data);
 
       toast({
         title: "Evento criado",
@@ -182,6 +191,8 @@ export const useSupabaseEventManager = () => {
 
   const updateEvent = async (id: string, updates: Partial<Event>) => {
     try {
+      console.log('Updating event:', id, updates);
+      
       const updateData: any = {};
       
       if (updates.name !== undefined) updateData.name = updates.name;
@@ -197,6 +208,8 @@ export const useSupabaseEventManager = () => {
         .eq('id', id);
 
       if (error) throw error;
+
+      console.log('Event updated successfully');
 
       toast({
         title: "Evento atualizado",
@@ -214,12 +227,16 @@ export const useSupabaseEventManager = () => {
 
   const deleteEvent = async (id: string) => {
     try {
+      console.log('Deleting event:', id);
+      
       const { error } = await supabase
         .from('events')
         .delete()
         .eq('id', id);
 
       if (error) throw error;
+
+      console.log('Event deleted successfully');
 
       toast({
         title: "Evento excluído",
@@ -237,6 +254,8 @@ export const useSupabaseEventManager = () => {
 
   const toggleEventPriority = async (id: string) => {
     try {
+      console.log('Toggling event priority:', id);
+      
       const event = events.find(e => e.id === id);
       if (!event) return;
 
@@ -264,6 +283,8 @@ export const useSupabaseEventManager = () => {
         .eq('id', id);
 
       if (error) throw error;
+
+      console.log('Event priority toggled successfully');
     } catch (error) {
       console.error('Error toggling event priority:', error);
       toast({
@@ -276,6 +297,8 @@ export const useSupabaseEventManager = () => {
 
   const addDemand = async (demandData: Omit<Demand, 'id' | 'createdAt'>) => {
     try {
+      console.log('Adding demand:', demandData);
+      
       const { data, error } = await supabase
         .from('demands')
         .insert({
@@ -290,6 +313,8 @@ export const useSupabaseEventManager = () => {
         .single();
 
       if (error) throw error;
+
+      console.log('Demand added successfully:', data);
 
       toast({
         title: "Demanda criada",
@@ -310,6 +335,8 @@ export const useSupabaseEventManager = () => {
 
   const updateDemand = async (id: string, updates: Partial<Demand>) => {
     try {
+      console.log('Updating demand:', id, updates);
+      
       const updateData: any = {};
       
       if (updates.title !== undefined) updateData.title = updates.title;
@@ -324,6 +351,8 @@ export const useSupabaseEventManager = () => {
         .eq('id', id);
 
       if (error) throw error;
+
+      console.log('Demand updated successfully');
 
       toast({
         title: "Demanda atualizada",
@@ -341,12 +370,16 @@ export const useSupabaseEventManager = () => {
 
   const deleteDemand = async (id: string) => {
     try {
+      console.log('Deleting demand:', id);
+      
       const { error } = await supabase
         .from('demands')
         .delete()
         .eq('id', id);
 
       if (error) throw error;
+
+      console.log('Demand deleted successfully');
 
       toast({
         title: "Demanda excluída",

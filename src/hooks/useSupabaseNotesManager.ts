@@ -11,11 +11,13 @@ export const useSupabaseNotesManager = () => {
   const loadingRef = useRef(false);
   const channelRef = useRef<any>(null);
 
-  const loadNotes = useCallback(async () => {
-    if (loadingRef.current) return;
-    loadingRef.current = true;
+  const loadNotes = useCallback(async (skipLoading = false) => {
+    if (loadingRef.current && !skipLoading) return;
+    if (!skipLoading) loadingRef.current = true;
 
     try {
+      console.log('Loading notes from Supabase...');
+      
       const { data, error } = await supabase
         .from('notes')
         .select('*')
@@ -31,6 +33,7 @@ export const useSupabaseNotesManager = () => {
         createdAt: new Date(note.created_at)
       }));
 
+      console.log('Notes loaded:', transformedNotes.length);
       setNotes(transformedNotes);
     } catch (error) {
       console.error('Error loading notes:', error);
@@ -40,38 +43,38 @@ export const useSupabaseNotesManager = () => {
         variant: "destructive"
       });
     } finally {
-      setIsLoading(false);
-      loadingRef.current = false;
+      if (!skipLoading) {
+        setIsLoading(false);
+        loadingRef.current = false;
+      }
     }
   }, [toast]);
 
   useEffect(() => {
-    let timeoutId: NodeJS.Timeout;
+    console.log('Setting up notes real-time subscription...');
     
     loadNotes();
 
-    const debouncedReload = () => {
-      clearTimeout(timeoutId);
-      timeoutId = setTimeout(() => {
-        if (!loadingRef.current) {
-          loadNotes();
-        }
-      }, 500);
+    const handleRealtimeChange = (payload: any) => {
+      console.log('Notes real-time change detected:', payload);
+      loadNotes(true);
     };
 
     const channel = supabase
-      .channel('notes-changes')
+      .channel('notes-realtime')
       .on('postgres_changes', {
         event: '*',
         schema: 'public',
         table: 'notes'
-      }, debouncedReload)
+      }, handleRealtimeChange)
       .subscribe();
 
     channelRef.current = channel;
 
+    console.log('Notes real-time channel subscribed');
+
     return () => {
-      clearTimeout(timeoutId);
+      console.log('Cleaning up notes real-time subscription...');
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
         channelRef.current = null;
@@ -81,6 +84,8 @@ export const useSupabaseNotesManager = () => {
 
   const addNote = async (noteData: Omit<Note, 'id' | 'createdAt'>) => {
     try {
+      console.log('Adding note:', noteData);
+      
       const { data, error } = await supabase
         .from('notes')
         .insert({
@@ -92,6 +97,8 @@ export const useSupabaseNotesManager = () => {
         .single();
 
       if (error) throw error;
+
+      console.log('Note added successfully:', data);
 
       toast({
         title: "Anotação criada",
@@ -112,6 +119,8 @@ export const useSupabaseNotesManager = () => {
 
   const updateNote = async (id: string, updates: Partial<Note>) => {
     try {
+      console.log('Updating note:', id, updates);
+      
       const updateData: any = {};
       
       if (updates.subject !== undefined) updateData.subject = updates.subject;
@@ -124,6 +133,8 @@ export const useSupabaseNotesManager = () => {
         .eq('id', id);
 
       if (error) throw error;
+
+      console.log('Note updated successfully');
 
       toast({
         title: "Anotação atualizada",
@@ -141,12 +152,16 @@ export const useSupabaseNotesManager = () => {
 
   const deleteNote = async (id: string) => {
     try {
+      console.log('Deleting note:', id);
+      
       const { error } = await supabase
         .from('notes')
         .delete()
         .eq('id', id);
 
       if (error) throw error;
+
+      console.log('Note deleted successfully');
 
       toast({
         title: "Anotação excluída",

@@ -11,11 +11,13 @@ export const useSupabaseCRMManager = () => {
   const loadingRef = useRef(false);
   const channelRef = useRef<any>(null);
 
-  const loadContacts = useCallback(async () => {
-    if (loadingRef.current) return;
-    loadingRef.current = true;
+  const loadContacts = useCallback(async (skipLoading = false) => {
+    if (loadingRef.current && !skipLoading) return;
+    if (!skipLoading) loadingRef.current = true;
 
     try {
+      console.log('Loading CRM contacts from Supabase...');
+      
       const { data, error } = await supabase
         .from('crm_contacts')
         .select('*')
@@ -33,6 +35,7 @@ export const useSupabaseCRMManager = () => {
         createdAt: new Date(contact.created_at)
       }));
 
+      console.log('CRM contacts loaded:', transformedContacts.length);
       setContacts(transformedContacts);
     } catch (error) {
       console.error('Error loading contacts:', error);
@@ -42,38 +45,38 @@ export const useSupabaseCRMManager = () => {
         variant: "destructive"
       });
     } finally {
-      setIsLoading(false);
-      loadingRef.current = false;
+      if (!skipLoading) {
+        setIsLoading(false);
+        loadingRef.current = false;
+      }
     }
   }, [toast]);
 
   useEffect(() => {
-    let timeoutId: NodeJS.Timeout;
+    console.log('Setting up CRM contacts real-time subscription...');
     
     loadContacts();
 
-    const debouncedReload = () => {
-      clearTimeout(timeoutId);
-      timeoutId = setTimeout(() => {
-        if (!loadingRef.current) {
-          loadContacts();
-        }
-      }, 500);
+    const handleRealtimeChange = (payload: any) => {
+      console.log('CRM contacts real-time change detected:', payload);
+      loadContacts(true);
     };
 
     const channel = supabase
-      .channel('crm-contacts-changes')
+      .channel('crm-contacts-realtime')
       .on('postgres_changes', {
         event: '*',
         schema: 'public',
         table: 'crm_contacts'
-      }, debouncedReload)
+      }, handleRealtimeChange)
       .subscribe();
 
     channelRef.current = channel;
 
+    console.log('CRM contacts real-time channel subscribed');
+
     return () => {
-      clearTimeout(timeoutId);
+      console.log('Cleaning up CRM contacts real-time subscription...');
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
         channelRef.current = null;
@@ -83,6 +86,8 @@ export const useSupabaseCRMManager = () => {
 
   const addContact = async (contactData: Omit<CRMContact, 'id' | 'createdAt'>) => {
     try {
+      console.log('Adding CRM contact:', contactData);
+      
       const { data, error } = await supabase
         .from('crm_contacts')
         .insert({
@@ -96,6 +101,8 @@ export const useSupabaseCRMManager = () => {
         .single();
 
       if (error) throw error;
+
+      console.log('CRM contact added successfully:', data);
 
       toast({
         title: "Contato criado",
@@ -116,6 +123,8 @@ export const useSupabaseCRMManager = () => {
 
   const updateContact = async (id: string, updates: Partial<CRMContact>) => {
     try {
+      console.log('Updating CRM contact:', id, updates);
+      
       const updateData: any = {};
       
       if (updates.name !== undefined) updateData.name = updates.name;
@@ -130,6 +139,8 @@ export const useSupabaseCRMManager = () => {
         .eq('id', id);
 
       if (error) throw error;
+
+      console.log('CRM contact updated successfully');
 
       toast({
         title: "Contato atualizado",
@@ -147,12 +158,16 @@ export const useSupabaseCRMManager = () => {
 
   const deleteContact = async (id: string) => {
     try {
+      console.log('Deleting CRM contact:', id);
+      
       const { error } = await supabase
         .from('crm_contacts')
         .delete()
         .eq('id', id);
 
       if (error) throw error;
+
+      console.log('CRM contact deleted successfully');
 
       toast({
         title: "Contato excluído",
