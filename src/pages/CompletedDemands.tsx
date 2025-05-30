@@ -72,12 +72,12 @@ const CompletedDemands = () => {
             {Object.values(groupedDemands).map(({ event, demands }) => (
               <div key={event.id} className="glass rounded-xl p-6">
                 <div className="flex items-center space-x-4 mb-4">
-                  <div className="w-12 h-12 glass-card rounded-lg flex items-center justify-center overflow-hidden">
+                  <div className="w-10 h-10 glass-card rounded-lg flex items-center justify-center overflow-hidden">
                     {event.logo ? (
                       <img src={event.logo} alt={event.name} className="w-full h-full object-cover" />
                     ) : (
-                      <div className="w-8 h-8 bg-teal-500/30 rounded-lg flex items-center justify-center">
-                        <span className="text-teal-300 font-bold text-sm">
+                      <div className="w-6 h-6 bg-teal-500/30 rounded-lg flex items-center justify-center">
+                        <span className="text-teal-300 font-bold text-xs">
                           {event.name.charAt(0).toUpperCase()}
                         </span>
                       </div>
@@ -92,42 +92,48 @@ const CompletedDemands = () => {
                   </div>
                 </div>
 
-                <div className="grid gap-3">
+                <div className="space-y-1">
                   {demands.map((demand) => (
-                    <div key={demand.id} className="glass-card rounded-lg p-4">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center space-x-2 mb-2">
-                            <div className="w-2 h-2 bg-teal-500 rounded-full"></div>
-                            <h4 className="text-white font-medium">{demand.title}</h4>
+                    <div key={demand.id} className="glass-card rounded-md p-2 hover:bg-white/10 transition-all duration-200">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3 flex-1 min-w-0">
+                          <div className="w-1.5 h-1.5 bg-teal-500 rounded-full flex-shrink-0"></div>
+                          
+                          <div className="flex-1 min-w-0">
+                            <span className="text-white font-medium text-sm truncate block">{demand.title}</span>
                           </div>
-                          <p className="text-blue-200/70 text-sm mb-2">{demand.subject}</p>
-                          <p className="text-teal-300 text-xs">
-                            Concluída em: {demand.date.toLocaleDateString('pt-BR', {
-                              year: 'numeric',
-                              month: '2-digit',
-                              day: '2-digit',
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            })}
-                          </p>
+                          
+                          <div className="hidden sm:block flex-shrink-0">
+                            <span className="text-blue-200/70 text-xs truncate block max-w-[200px]">{demand.subject}</span>
+                          </div>
+                          
+                          <div className="flex-shrink-0">
+                            <span className="text-teal-300 text-xs whitespace-nowrap">
+                              {demand.date.toLocaleDateString('pt-BR', {
+                                day: '2-digit',
+                                month: '2-digit',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </span>
+                          </div>
                         </div>
                         
-                        <div className="flex items-center space-x-2 ml-4">
+                        <div className="flex items-center space-x-1 ml-3 flex-shrink-0">
                           <button
                             onClick={() => handleRestore(demand.id)}
-                            className="glass-button p-2 rounded-lg hover:bg-teal-500/40 transition-all duration-200"
+                            className="p-1.5 hover:bg-teal-500/40 rounded transition-all duration-200"
                             title="Restaurar demanda"
                           >
-                            <RotateCcw size={14} className="text-teal-300" />
+                            <RotateCcw size={12} className="text-teal-300" />
                           </button>
                           
                           <button
                             onClick={() => handlePermanentDelete(demand.id)}
-                            className="glass-button p-2 rounded-lg hover:bg-red-500/30 transition-all duration-200"
+                            className="p-1.5 hover:bg-red-500/30 rounded transition-all duration-200"
                             title="Excluir permanentemente"
                           >
-                            <Trash2 size={14} className="text-red-300" />
+                            <Trash2 size={12} className="text-red-300" />
                           </button>
                         </div>
                       </div>
